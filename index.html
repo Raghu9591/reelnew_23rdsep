@@ -232,6 +232,16 @@
 
   const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwYe4v-vOI7Ub1_BaTesRDV-9XgLvsp-qoda4bn6UZdcXxliwpYknWmdC3S61lWqzHLWA/exec';
 
+  // Generate or retrieve persistent Visitor ID per session
+  function getVisitorId() {
+    let visitorId = localStorage.getItem('rapido_visitor_id');
+    if (!visitorId) {
+      visitorId = 'v_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('rapido_visitor_id', visitorId);
+    }
+    return visitorId;
+  }
+
   function getCityFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     let city = urlParams.get('city');
@@ -243,10 +253,13 @@
     return city;
   }
 
-  // Tracking function to send events to Google Sheets via GET query parameters
+  // Tracking function tied to Visitor ID
   function trackEvent(eventType, extraParams = {}) {
     const city = getCityFromURL();
+    const visitorId = getVisitorId();
+
     const queryData = new URLSearchParams({
+      visitorId: visitorId,
       eventType: eventType,
       city: city,
       ...extraParams
@@ -254,7 +267,6 @@
 
     const targetUrl = `${GOOGLE_SHEET_URL}?${queryData.toString()}`;
 
-    // Send request to Apps Script Web App
     fetch(targetUrl, {
       method: 'GET',
       mode: 'no-cors'
@@ -279,7 +291,7 @@
       downloadBtn.href = downloadSrc;
       downloadBtn.setAttribute('download', `${city}-rapido-reel.mp4`);
 
-      // Track reel download click
+      // Track reel download click against the visitor
       downloadBtn.addEventListener('click', () => {
         trackEvent('download_reel');
       });
