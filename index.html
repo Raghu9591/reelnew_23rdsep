@@ -132,7 +132,7 @@
     </div>
     <div class="city-actions">
       <p>Tap below to save the official reel for your city to your phone</p>
-      <a id="downloadBtn" href="#" class="btn" target="_blank" download>Download Video</a>
+      <a id="downloadBtn" href="#" class="btn">Download Video</a>
     </div>
   </div>
 
@@ -232,7 +232,6 @@
 
   const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwYe4v-vOI7Ub1_BaTesRDV-9XgLvsp-qoda4bn6UZdcXxliwpYknWmdC3S61lWqzHLWA/exec';
 
-  // Generate or retrieve persistent Visitor ID per session
   function getVisitorId() {
     let visitorId = localStorage.getItem('rapido_visitor_id');
     if (!visitorId) {
@@ -253,7 +252,6 @@
     return city;
   }
 
-  // Tracking function tied to Visitor ID
   function trackEvent(eventType, extraParams = {}) {
     const city = getCityFromURL();
     const visitorId = getVisitorId();
@@ -288,12 +286,37 @@
     }
 
     if (downloadBtn) {
-      downloadBtn.href = downloadSrc;
-      downloadBtn.setAttribute('download', `${city}-rapido-reel.mp4`);
+      downloadBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        
+        // 1. Fire Download Clicked Event immediately
+        trackEvent('download_clicked');
 
-      // Track reel download click against the visitor
-      downloadBtn.addEventListener('click', () => {
-        trackEvent('download_reel');
+        downloadBtn.textContent = 'Downloading...';
+
+        try {
+          // Fetch video file blob to track download completion accurately
+          const response = await fetch(downloadSrc);
+          const blob = await response.blob();
+          
+          const blobUrl = window.URL.createObjectURL(blob);
+          const tempAnchor = document.createElement('a');
+          tempAnchor.href = blobUrl;
+          tempAnchor.download = `${city}-rapido-reel.mp4`;
+          document.body.appendChild(tempAnchor);
+          tempAnchor.click();
+          document.body.removeChild(tempAnchor);
+          window.URL.revokeObjectURL(blobUrl);
+
+          // 2. Fire Video Downloaded Event when transfer finishes
+          trackEvent('download_completed');
+          downloadBtn.textContent = 'Download Complete!';
+        } catch (err) {
+          // Fallback to direct URL trigger if blob fetch fails
+          window.open(downloadSrc, '_blank');
+          trackEvent('download_completed');
+          downloadBtn.textContent = 'Download Video';
+        }
       });
     }
   }
@@ -301,7 +324,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     setupCityReel();
 
-    // Track Page View on load
+    // Track Page View
     trackEvent('page_view');
 
     const form = document.getElementById('entryForm');
@@ -330,7 +353,6 @@
           submitBtn.textContent = 'Submitting...';
         }
 
-        // Track Form Submission with user inputs
         trackEvent('form_submit', {
           fullName: fullName,
           phoneNumber: phoneNumber,
