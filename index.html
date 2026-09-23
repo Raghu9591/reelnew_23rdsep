@@ -243,19 +243,22 @@
     return city;
   }
 
-  // Tracking function to send events to Google Sheets
+  // Tracking function to send events to Google Sheets via GET query parameters
   function trackEvent(eventType, extraParams = {}) {
     const city = getCityFromURL();
-    const payload = new URLSearchParams({
+    const queryData = new URLSearchParams({
       eventType: eventType,
       city: city,
       ...extraParams
     });
 
-    fetch(`${GOOGLE_SHEET_URL}?${payload.toString()}`, {
-      method: 'POST',
+    const targetUrl = `${GOOGLE_SHEET_URL}?${queryData.toString()}`;
+
+    // Send request to Apps Script Web App
+    fetch(targetUrl, {
+      method: 'GET',
       mode: 'no-cors'
-    }).catch(err => console.error('Tracking failed:', err));
+    }).catch(err => console.error('Tracking error:', err));
   }
 
   function setupCityReel() {
@@ -315,7 +318,7 @@
           submitBtn.textContent = 'Submitting...';
         }
 
-        // Track Form Submission
+        // Track Form Submission with user inputs
         trackEvent('form_submit', {
           fullName: fullName,
           phoneNumber: phoneNumber,
