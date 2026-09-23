@@ -1,0 +1,127 @@
+<script>
+  // All 15 Campaign Cities + Aliases mapping
+  const cityReels = {
+    'bangalore': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_bengaluru_7s_v1.mp4',
+    'bengaluru': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_bengaluru_7s_v1.mp4',
+    'gangapurcity': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_gangapur_city_7s_v1.mp4',
+    'lumding': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_lumding_7s_v1.mp4',
+    'jalore': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_jalore_7s_v1.mp4',
+    'nagina': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_nagina_7s_v1.mp4',
+    'dhampur': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_nagina_7s_v1.mp4',
+    'seohara': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_nagina_7s_v1.mp4',
+    'naginadhampurseohara': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_nagina_7s_v1.mp4',
+    'kollam': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_kollam_7s_v1.mp4',
+    'ponnur': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_ponnur_7s_v1.mp4',
+    'thrissur': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_bengaluru_7s_v1.mp4',
+    'repalle': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_bengaluru_7s_v1.mp4',
+    'rajampet': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_bengaluru_7s_v1.mp4',
+    'tenkasi': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_tenkasi_7s_v1.mp4',
+    'kadayanallur': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_tenkasi_7s_v1.mp4',
+    'tenkasikadayanallur': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_tenkasi_7s_v1.mp4',
+    'lakhisarai': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_lakhisarai_7s_v1.mp4',
+    'krishnagiri': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_krishnagiri_7s_v1.mp4',
+    'masaurhi': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_masaurhi_7s_v1.mp4',
+    'changanassery': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_changanassery_7s_v1.mp4',
+    'chavakkad': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_chavakkad_7s_v1.mp4',
+    'default': 'https://archive.org/download/rapido_tenkasi_7s_v1/rapido_bengaluru_7s_v1.mp4'
+  };
+
+  const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwXuEap4fwQuH7gOxzciBW3PLdw-X5prnZXC3TJgDTOt3jVEDnQBzoNLbnsJaTwGjk/exec';
+
+  function getCityFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let city = urlParams.get('city');
+    if (!city) return 'bangalore';
+    city = decodeURIComponent(city).toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+    if (city === '' || city === 'null' || city.includes('@') || city.includes('{')) {
+      return 'bangalore';
+    }
+    return city;
+  }
+
+  // Sends tracking metrics to Google Sheets
+  function trackEvent(eventType, extraParams = {}) {
+    const city = getCityFromURL();
+    const payload = new URLSearchParams({
+      eventType: eventType,
+      city: city,
+      ...extraParams
+    });
+
+    fetch(`${GOOGLE_SHEET_URL}?${payload.toString()}`, {
+      method: 'POST',
+      mode: 'no-cors'
+    }).catch(err => console.error('Tracking failed:', err));
+  }
+
+  function setupCityReel() {
+    const city = getCityFromURL();
+    const downloadSrc = cityReels[city] || cityReels['default'];
+
+    const videoElement = document.getElementById('cityVideo');
+    const videoSource = document.getElementById('cityVideoSource');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    if (videoSource && videoElement) {
+      videoElement.removeAttribute('crossorigin');
+      videoSource.src = downloadSrc;
+      videoElement.load();
+    }
+
+    if (downloadBtn) {
+      downloadBtn.href = downloadSrc;
+      downloadBtn.setAttribute('download', `${city}-rapido-reel.mp4`);
+
+      // Track reel download click
+      downloadBtn.addEventListener('click', () => {
+        trackEvent('download_reel');
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setupCityReel();
+
+    // Track page view
+    trackEvent('page_view');
+
+    const form = document.getElementById('entryForm');
+    const successView = document.getElementById('successView');
+    const errorMsg = document.getElementById('errorMsg');
+    const submitBtn = form ? form.querySelector('.submit-btn') : null;
+
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorMsg.style.display = 'none';
+
+        const fullName = document.getElementById('fullName').value.trim();
+        const phoneNumber = document.getElementById('phoneNumber').value.trim();
+        const instaHandle = document.getElementById('instaHandle').value.trim();
+        const reelLink = document.getElementById('reelLink').value.trim();
+        const terms = document.getElementById('terms').checked;
+
+        if (!fullName || !phoneNumber || !instaHandle || !reelLink || !terms) {
+          errorMsg.style.display = 'block';
+          return;
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Submitting...';
+        }
+
+        // Track form submission with user entry details
+        trackEvent('form_submit', {
+          fullName: fullName,
+          phoneNumber: phoneNumber,
+          instaHandle: instaHandle,
+          reelLink: reelLink
+        });
+
+        form.style.display = 'none';
+        successView.style.display = 'block';
+      });
+    }
+  });
+</script>
